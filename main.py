@@ -8,9 +8,19 @@ inline_prints = []
 org = 0x8000
 
 
+def add_data(x):
+    print(x)
+    if x[1] == 2:
+        Data.append(x[0][0])
+        Data.append(x[0][1])
+    else:
+        Data.append(x[0])
+
+
 def parse_block(text: str) -> (any, int):
     text = text.split(',')[0]
-    if text.startswith('$'):
+    print(text[0])
+    if text[0] == '$':
         hex_text = ''
         for _ in text:
             if _ != '$':
@@ -19,6 +29,25 @@ def parse_block(text: str) -> (any, int):
         hex = int(hex_text, base=16)
 
         return hex, 1
+    if text.startswith('*'):
+
+        address_low = ""
+        address_high = ""
+
+        string = ""
+
+        for _ in text:
+            if _ != '*' and _ != '$':
+                string += _
+
+        address_high = string[0:2]
+        address_low = string[1:3]
+
+        address_high = int(address_high, base=16)
+        address_low = int(address_low, base=16)
+
+        return (address_high, address_low), 2
+    return 00
 
 
 def attrib_org(params, line: int):
@@ -30,7 +59,6 @@ def attrib_cprint(params, line: int):
     words = params[1:(len(params))]
     text = ""
 
-    print(words)
     if words[0] == '$(D)':
         inline_prints.append(Data)
         print(".CPRINT $::(DATA)")
@@ -48,45 +76,45 @@ def attrib_cprint(params, line: int):
 def ins_hostcall(params, line: int):
     id = parse_block(params[1])
 
-    if id[1] == 1:
-        Data.append(66)
+    Data.append(66)
 
-    Data.append(id[0])
+    add_data(id)
 
 
 def ins_lda(params, line: int):
     Data.append(0xA9)
 
-    val = params[1]
+    val = parse_block(params[1])
 
-    Data.append(parse_block(val))
+    add_data(val)
 
 
 def ins_ldx(params, line: int):
     Data.append(0xA2)
 
-    val = params[1]
+    val = parse_block(params[1])
 
-    Data.append(parse_block(val))
+    add_data(val)
 
 
 def ins_ldy(params, line: int):
     Data.append(0xA0)
 
-    val = params[1]
+    val = parse_block(params[1])
 
-    Data.append(parse_block(val))
+    add_data(val)
 
 
 def ins_sta(params, line: int):
     Data.append(0x85)
 
-    address = params[1]
+    address = parse_block(params[1])
 
-    Data.append(parse_block(address))
+    add_data(address)
+
 
 def compiler_meta(params, line: int):
-    global  inline_prints
+    global inline_prints
     global Data
     if params[1] == "STOP":
         print("INLINE STOP!")
@@ -94,12 +122,11 @@ def compiler_meta(params, line: int):
     elif params[1] == "INLINE_CLEAR":
         inline_prints = []
     elif params[1] == "DATA_CLEAR":
-        Data  = []
+        Data = []
     elif params[1] == "~":
-        if len(params)==3:
-            Data.append(params[2].split(":")[0])
-            Data.append(params[2].split(":")[1])
-
+        if len(params) == 3:
+            add_data(parse_block(params[2].split(":")[0]))
+            add_data(parse_block(params[2].split(":")[1]))
 
 
 Tokens = \
@@ -132,7 +159,7 @@ if __name__ == '__main__':
         line = lines_list[index]
 
         for token in Tokens:
-            print((f"$::(B)::TOKEN={line.split(' ')[0]}=={token}"))
+            # print((f"$::(B)::TOKEN={line.split(' ')[0]}=={token}"))
             if line.split(' ')[0].upper() == token.upper():
                 Tokens[token](line.split(' '), index + 1)
 
