@@ -65,13 +65,15 @@ def attrib_cprint(params, line: int):
         return
 
     for word in words:
-        if word.startswith('#'):
+        if word.startswith(';'):
             return
         word += ' '
         text += word
 
     inline_prints.append((text, line))
 
+def ins_nop(params, line: int):
+    Data.append(0xEA) # nop
 
 def ins_hostcall(params, line: int):
     id = parse_block(params[1])
